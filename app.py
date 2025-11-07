@@ -121,10 +121,26 @@ def health():
     """Health check endpoint"""
     return {'status': 'ok', 'message': 'Server is running'}, 200
 
+@app.route('/test')
+def test():
+    """Test endpoint"""
+    import os
+    return {
+        'templates_exist': os.path.exists('templates'),
+        'index_exists': os.path.exists('templates/index.html'),
+        'admin_exists': os.path.exists('templates/admin.html'),
+        'cwd': os.getcwd(),
+        'files': os.listdir('.')
+    }
+
 @app.route('/')
 def index():
     """Müşteri sayfası"""
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        logger.error(f"Index template error: {e}")
+        return {'error': str(e)}, 500
 
 @app.route('/admin')
 def admin():

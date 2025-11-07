@@ -44,36 +44,41 @@ def register_user():
 @security.rate_limit
 def send_message():
     """Mesaj gönder"""
-    data = request.get_json()
-    user_id = data.get('user_id')
-    sender_type = data.get('sender_type', 'customer')
-    message_type = data.get('message_type', 'text')
-    content = data.get('content')
-    
-    if not security.validate_user_id(user_id):
-        return jsonify({'success': False, 'error': 'Geçersiz user ID'}), 400
-    
-    if message_type == 'text' and not security.validate_message(content):
-        return jsonify({'success': False, 'error': 'Geçersiz mesaj'}), 400
-    
-    # Mesajı kaydet
-    message_id = send_text_message(user_id, sender_type, content)
-    
-    # Last seen güncelle
-    update_last_seen(user_id)
-    
-    # SSE ile bildir
-    from datetime import datetime
-    sse_manager.notify(user_id, {
-        'id': message_id,
-        'user_id': user_id,
-        'sender_type': sender_type,
-        'message_type': message_type,
-        'content': content,
-        'created_at': datetime.now().isoformat()
-    })
-    
-    return jsonify({'success': True, 'message_id': message_id})
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        sender_type = data.get('sender_type', 'customer')
+        message_type = data.get('message_type', 'text')
+        content = data.get('content')
+        
+        if not security.validate_user_id(user_id):
+            return jsonify({'success': False, 'error': 'Geçersiz user ID'}), 400
+        
+        if message_type == 'text' and not security.validate_message(content):
+            return jsonify({'success': False, 'error': 'Geçersiz mesaj'}), 400
+        
+        # Mesajı kaydet
+        message_id = send_text_message(user_id, sender_type, content)
+        
+        # Last seen güncelle
+        update_last_seen(user_id)
+        
+        # SSE ile bildir
+        from datetime import datetime
+        sse_manager.notify(user_id, {
+            'id': message_id,
+            'user_id': user_id,
+            'sender_type': sender_type,
+            'message_type': message_type,
+            'content': content,
+            'created_at': datetime.now().isoformat()
+        })
+        
+        return jsonify({'success': True, 'message_id': message_id})
+    except Exception as e:
+        import logging
+        logging.error(f"Send message error: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @chat_bp.route('/messages/<user_id>', methods=['GET'])
 def get_user_messages(user_id):
