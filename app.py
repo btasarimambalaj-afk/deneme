@@ -33,31 +33,38 @@ os.makedirs(Config.VOICE_UPLOAD_FOLDER, exist_ok=True)
 # Database initialize
 init_db()
 
-# Telegram initialize
+# Telegram initialize (lazy)
 telegram_bot = None
-if Config.TELEGRAM_BOT_TOKEN and Config.TELEGRAM_ADMIN_CHAT_ID:
-    telegram_bot = TelegramBot(Config.TELEGRAM_BOT_TOKEN, Config.TELEGRAM_ADMIN_CHAT_ID)
-    init_telegram(Config.TELEGRAM_BOT_TOKEN, Config.TELEGRAM_ADMIN_CHAT_ID)
-    logger.info("Telegram bot initialized")
-else:
-    logger.warning("Telegram credentials not found")
+
+def get_telegram_bot():
+    """Lazy telegram bot initialization"""
+    global telegram_bot
+    if telegram_bot is None and Config.TELEGRAM_BOT_TOKEN and Config.TELEGRAM_ADMIN_CHAT_ID:
+        try:
+            telegram_bot = TelegramBot(Config.TELEGRAM_BOT_TOKEN, Config.TELEGRAM_ADMIN_CHAT_ID)
+            init_telegram(Config.TELEGRAM_BOT_TOKEN, Config.TELEGRAM_ADMIN_CHAT_ID)
+            logger.info("Telegram bot initialized")
+        except Exception as e:
+            logger.error(f"Telegram init error: {e}")
+    return telegram_bot
 
 # Telegram Notifications Hook (BEFORE register)
 @chat_bp.after_request
 def notify_telegram(response):
     """Yeni kullanıcı/mesaj bildirimleri"""
-    if telegram_bot and response.status_code == 200:
+    bot = get_telegram_bot()
+    if bot and response.status_code == 200:
         try:
             from flask import request
             if request.endpoint == 'chat.register_user':
                 data = request.get_json()
-                telegram_bot.notify_new_user(data.get('user_id'), data.get('name'))
+                bot.notify_new_user(data.get('user_id'), data.get('name'))
             elif request.endpoint == 'chat.send_message':
                 data = request.get_json()
                 if data.get('sender_type') == 'customer':
                     from modules.database import get_user
                     user = get_user(data.get('user_id'))
-                    telegram_bot.notify_new_message(
+                    bot.notify_new_message(
                         data.get('user_id'),
                         user['name'] if user else 'Anonim',
                         data.get('message_type'),
@@ -70,7 +77,8 @@ def notify_telegram(response):
 @files_bp.after_request
 def notify_telegram_files(response):
     """Dosya yükleme bildirimleri"""
-    if telegram_bot and response.status_code == 200:
+    bot = get_telegram_bot()
+    if bot and response.status_code == 200:
         try:
             from flask import request
             if request.endpoint in ['files.upload_image', 'files.upload_voice']:
@@ -84,7 +92,7 @@ def notify_telegram_files(response):
                     last_msg = messages[-1] if messages else None
                     
                     if last_msg:
-                        telegram_bot.notify_new_message(
+                        bot.notify_new_message(
                             user_id,
                             user['name'] if user else 'Anonim',
                             last_msg['message_type'],
@@ -97,14 +105,15 @@ def notify_telegram_files(response):
 @admin_bp.after_request
 def send_otp_telegram(response):
     """OTP'yi Telegram'a gönder"""
-    if telegram_bot and response.status_code == 200:
+    bot = get_telegram_bot()
+    if bot and response.status_code == 200:
         try:
             from flask import request
             if request.endpoint == 'admin.request_otp':
                 import json
                 data = json.loads(response.get_data())
                 if data.get('success') and data.get('otp'):
-                    telegram_bot.send_message(f"🔐 <b>Admin OTP</b>\n\nKod: <code>{data['otp']}</code>\n\n⏰ 5 dakika geçerli")
+                    bot.send_message(f"🔐 <b>Admin OTP</b>\n\nKod: <code>{data['otp']}</code>\n\n⏰ 5 dakika geçerli")
         except Exception as e:
             logger.error(f"OTP send error: {e}")
     return response
