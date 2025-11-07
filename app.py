@@ -42,35 +42,13 @@ if Config.TELEGRAM_BOT_TOKEN and Config.TELEGRAM_ADMIN_CHAT_ID:
 else:
     logger.warning("Telegram credentials not found")
 
-# Register Blueprints
-app.register_blueprint(chat_bp, url_prefix='/api')
-app.register_blueprint(admin_bp, url_prefix='/api/admin')
-app.register_blueprint(files_bp, url_prefix='/api/files')
-app.register_blueprint(telegram_bp, url_prefix='/api/telegram')
-
-# Routes
-@app.route('/')
-def index():
-    """Müşteri sayfası"""
-    return render_template('index.html')
-
-@app.route('/admin')
-def admin():
-    """Admin paneli"""
-    return render_template('admin.html')
-
-@app.route('/static/uploads/<path:filename>')
-def serve_upload(filename):
-    """Upload dosyalarını servis et"""
-    return send_from_directory('static/uploads', filename)
-
-# Telegram Notifications Hook
+# Telegram Notifications Hook (BEFORE register)
 @chat_bp.after_request
 def notify_telegram(response):
     """Yeni kullanıcı/mesaj bildirimleri"""
     if telegram_bot and response.status_code == 200:
         try:
-            from flask import request, g
+            from flask import request
             if request.endpoint == 'chat.register_user':
                 data = request.get_json()
                 telegram_bot.notify_new_user(data.get('user_id'), data.get('name'))
@@ -130,6 +108,30 @@ def send_otp_telegram(response):
         except Exception as e:
             logger.error(f"OTP send error: {e}")
     return response
+
+# Register Blueprints (AFTER hooks)
+app.register_blueprint(chat_bp, url_prefix='/api')
+app.register_blueprint(admin_bp, url_prefix='/api/admin')
+app.register_blueprint(files_bp, url_prefix='/api/files')
+app.register_blueprint(telegram_bp, url_prefix='/api/telegram')
+
+# Routes
+@app.route('/')
+def index():
+    """Müşteri sayfası"""
+    return render_template('index.html')
+
+@app.route('/admin')
+def admin():
+    """Admin paneli"""
+    return render_template('admin.html')
+
+@app.route('/static/uploads/<path:filename>')
+def serve_upload(filename):
+    """Upload dosyalarını servis et"""
+    return send_from_directory('static/uploads', filename)
+
+
 
 # Error Handlers
 @app.errorhandler(404)
