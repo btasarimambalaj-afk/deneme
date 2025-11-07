@@ -16,10 +16,8 @@ telegram_webhook = None
 telegram_bot = None
 
 def init_telegram(bot_token, admin_chat_id):
-    """Telegram modüllerini initialize et"""
-    global telegram_webhook, telegram_bot
-    telegram_webhook = TelegramWebhook(bot_token)
-    telegram_bot = TelegramBot(bot_token, admin_chat_id)
+    """Telegram disabled temporarily"""
+    pass
 
 @telegram_bp.route('/webhook', methods=['POST'])
 def webhook():

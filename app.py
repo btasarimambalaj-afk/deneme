@@ -8,11 +8,10 @@ from flask import Flask, render_template, send_from_directory
 from flask_cors import CORS
 from config import Config
 from modules.database import init_db
-from modules.telegram_bot import TelegramBot
 from routes.chat import chat_bp
 from routes.admin import admin_bp
 from routes.files import files_bp
-from routes.telegram import telegram_bp, init_telegram
+from routes.telegram import telegram_bp
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -33,11 +32,8 @@ os.makedirs(Config.VOICE_UPLOAD_FOLDER, exist_ok=True)
 # Database initialize
 init_db()
 
-# Telegram initialize (disabled for now)
-telegram_bot = None
-
+# Telegram disabled
 def get_telegram_bot():
-    """Telegram bot disabled temporarily"""
     return None
 
 # Telegram Notifications Hook (BEFORE register)
