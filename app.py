@@ -126,9 +126,24 @@ def test():
         'templates_exist': os.path.exists('templates'),
         'index_exists': os.path.exists('templates/index.html'),
         'admin_exists': os.path.exists('templates/admin.html'),
+        'static_exist': os.path.exists('static'),
+        'static_js_exist': os.path.exists('static/js'),
+        'app_js_exist': os.path.exists('static/js/app.js'),
         'cwd': os.getcwd(),
         'files': os.listdir('.')
     }
+
+@app.route('/debug')
+def debug():
+    """Debug routes"""
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'path': str(rule)
+        })
+    return {'routes': routes}
 
 @app.route('/')
 def index():
