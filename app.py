@@ -116,6 +116,11 @@ app.register_blueprint(files_bp, url_prefix='/api/files')
 app.register_blueprint(telegram_bp, url_prefix='/api/telegram')
 
 # Routes
+@app.route('/health')
+def health():
+    """Health check endpoint"""
+    return {'status': 'ok', 'message': 'Server is running'}, 200
+
 @app.route('/')
 def index():
     """Müşteri sayfası"""
