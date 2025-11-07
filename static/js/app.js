@@ -60,6 +60,7 @@ async function loadMessages() {
         const data = await res.json();
         
         if (data.success) {
+            document.getElementById('messagesContainer').innerHTML = '<div class="welcome-banner"><div class="welcome-icon">👋</div><div class="welcome-title">Hoş Geldiniz!</div><div class="welcome-text">Size nasıl yardımcı olabiliriz?</div></div>';
             data.messages.forEach(msg => addMessage(msg));
         }
     } catch (error) {
@@ -148,6 +149,13 @@ async function sendMessage() {
         });
         
         if (res.ok) {
+            addMessage({
+                user_id: userId,
+                sender_type: 'customer',
+                message_type: 'text',
+                content: text,
+                created_at: new Date().toISOString()
+            });
             input.value = '';
             input.style.height = 'auto';
             document.getElementById('sendBtn').disabled = true;
@@ -172,6 +180,7 @@ async function uploadImage(file) {
         
         if (res.ok) {
             showToast('Resim gönderildi', 'success');
+            setTimeout(() => loadMessages(), 500);
         }
     } catch (error) {
         showToast('Resim gönderilemedi', 'error');
@@ -220,6 +229,7 @@ async function uploadVoice() {
         
         if (res.ok) {
             showToast('Ses kaydı gönderildi', 'success');
+            setTimeout(() => loadMessages(), 500);
         }
     } catch (error) {
         showToast('Ses gönderilemedi', 'error');
