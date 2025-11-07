@@ -21,7 +21,7 @@ function showNameModal() {
     document.getElementById('nameModal').classList.add('active');
 }
 
-document.getElementById('nameSubmitBtn').addEventListener('click', () => {
+document.getElementById('nameSubmitBtn').addEventListener('click', async () => {
     const name = document.getElementById('nameInput').value.trim() || 'Anonim';
     userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     userName = name;
@@ -29,7 +29,7 @@ document.getElementById('nameSubmitBtn').addEventListener('click', () => {
     localStorage.setItem('user_id', userId);
     localStorage.setItem('user_name', userName);
     
-    registerUser();
+    await registerUser();
     document.getElementById('nameModal').classList.remove('active');
     initChat();
 });
@@ -159,8 +159,13 @@ async function sendMessage() {
             input.value = '';
             input.style.height = 'auto';
             document.getElementById('sendBtn').disabled = true;
+        } else {
+            const error = await res.json();
+            console.error('Send error:', error);
+            showToast(error.error || 'Mesaj gönderilemedi', 'error');
         }
     } catch (error) {
+        console.error('Send exception:', error);
         showToast('Mesaj gönderilemedi', 'error');
     }
 }
