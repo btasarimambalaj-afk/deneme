@@ -37,13 +37,21 @@ document.getElementById('nameSubmitBtn').addEventListener('click', async () => {
 // Register User
 async function registerUser() {
     try {
-        await fetch('/api/users', {
+        const res = await fetch('/api/users', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({user_id: userId, name: userName})
         });
+        const data = await res.json();
+        console.log('Register response:', data);
+        if (!data.success) {
+            showToast('Kayıt başarısız: ' + data.error, 'error');
+        }
+        return data.success;
     } catch (error) {
         console.error('Register error:', error);
+        showToast('Kayıt başarısız', 'error');
+        return false;
     }
 }
 
