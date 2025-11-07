@@ -3,6 +3,7 @@ let users = [];
 let currentUser = null;
 let selectedUsers = new Set();
 let eventSources = {};
+let adminToken = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,6 +25,7 @@ async function requestOTP() {
         const data = await res.json();
         
         if (data.success) {
+            adminToken = data.token;
             showToast('OTP Telegram\'a gönderildi', 'success');
             console.log('OTP:', data.otp); // Dev only
         }
@@ -35,18 +37,19 @@ async function requestOTP() {
 async function verifyOTP() {
     const otp = document.getElementById('otpInput').value.trim();
     
-    if (!otp) return;
+    if (!otp || !adminToken) return;
     
     try {
         const res = await fetch('/api/admin/verify-otp', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({otp})
+            body: JSON.stringify({otp, token: adminToken})
         });
         
         const data = await res.json();
         
         if (data.success) {
+            adminToken = data.token;
             document.getElementById('loginModal').classList.remove('active');
             document.getElementById('adminPanel').classList.remove('hidden');
             initAdmin();
@@ -70,7 +73,9 @@ function initAdmin() {
 // Load Users
 async function loadUsers() {
     try {
-        const res = await fetch('/api/admin/users');
+        const res = await fetch('/api/admin/users', {
+            headers: {'X-Admin-Token': adminToken}
+        });
         const data = await res.json();
         
         if (data.success) {
@@ -131,7 +136,9 @@ function renderUsers() {
 // Load Stats
 async function loadStats() {
     try {
-        const res = await fetch('/api/admin/stats');
+        const res = await fetch('/api/admin/stats', {
+            headers: {'X-Admin-Token': adminToken}
+        });
         const data = await res.json();
         
         if (data.success) {
@@ -285,7 +292,10 @@ async function deleteSelected() {
     try {
         await Promise.all(
             Array.from(selectedUsers).map(id =>
-                fetch(`/api/admin/users/${id}`, {method: 'DELETE'})
+                fetch(`/api/admin/users/${id}`, {
+                    method: 'DELETE',
+                    headers: {'X-Admin-Token': adminToken}
+                })
             )
         );
         
@@ -420,7 +430,10 @@ function setupAdminListeners() {
 // Logout
 async function logout() {
     try {
-        await fetch('/api/admin/logout', {method: 'POST'});
+        await fetch('/api/admin/logout', {
+            method: 'POST',
+            headers: {'X-Admin-Token': adminToken}
+        });
         location.reload();
     } catch (error) {
         location.reload();

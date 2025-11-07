@@ -21,8 +21,8 @@ def admin_required(f):
     """Admin authentication decorator"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        session_id = session.get('session_id')
-        if not session_id or not otp_manager.is_authenticated(session_id):
+        token = request.headers.get('X-Admin-Token') or request.cookies.get('admin_token')
+        if not token or not otp_manager.is_authenticated(token):
             return jsonify({'success': False, 'error': 'Yetkisiz erişim'}), 401
         return f(*args, **kwargs)
     return decorated_function
@@ -31,15 +31,14 @@ def admin_required(f):
 @security.rate_limit
 def request_otp():
     """OTP kodu iste"""
-    session_id = session.get('session_id', os.urandom(16).hex())
-    session['session_id'] = session_id
-    
-    otp_code = otp_manager.generate_otp(session_id)
+    token = os.urandom(16).hex()
+    otp_code = otp_manager.generate_otp(token)
     
     # Telegram'a gönder (app.py'de handle edilecek)
     return jsonify({
         'success': True,
         'message': 'OTP Telegram\'a gönderildi',
+        'token': token,
         'otp': otp_code  # Sadece development için
     })
 
@@ -49,15 +48,17 @@ def verify_otp():
     """OTP doğrula"""
     data = request.get_json()
     otp_code = data.get('otp')
-    session_id = session.get('session_id')
+    token = data.get('token')
     
-    if not session_id:
-        return jsonify({'success': False, 'error': 'Session bulunamadı'}), 400
+    if not token:
+        return jsonify({'success': False, 'error': 'Token bulunamadı'}), 400
     
-    result = otp_manager.verify_otp(session_id, otp_code)
+    result = otp_manager.verify_otp(token, otp_code)
     
     if result['success']:
-        return jsonify({'success': True, 'message': 'Giriş başarılı'})
+        resp = jsonify({'success': True, 'message': 'Giriş başarılı', 'token': token})
+        resp.set_cookie('admin_token', token, max_age=36000, httponly=True, samesite='Lax')
+        return resp
     else:
         return jsonify({'success': False, 'error': result['error']}), 400
 
